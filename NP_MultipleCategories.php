@@ -32,9 +32,9 @@ if (!function_exists('array_key_exists')){
 class NP_MultipleCategories extends NucleusPlugin {
 
 	function getName()	{ return 'Multiple Categories [Custom Edition]'; }
-	function getAuthor()	  { return 'Anand + nakahara21 + Taka + sato(na) + shizuki + Katsumi'; }
-	function getURL()	 { return 'http://reverb.jp/vivian/download.php?itemid=NP_MultipleCategories'; }
-	function getVersion()	 { return '0.5.1j'; }
+	function getAuthor()	  { return 'Anand + nakahara21 + Taka + sato(na) + shizuki + Katsumi + Leo'; }
+	function getURL()	 { return 'http://nucleus.slightlysome.net/plugins/multiplecategories'; }
+	function getVersion()	 { return '0.5.1j-lm1'; }
 	function getMinNucleusVersion()	 { return '220'; }
 	function getDescription()	{
 		// include language file for this plugin 
@@ -124,7 +124,7 @@ ADD `ordid` INT( 11 ) DEFAULT '100' NOT NULL AFTER `parentid` ;
 		$query .= ' categories varchar(255) not null,';		
 		$query .= ' subcategories varchar(255) not null,';		
 		$query .= ' PRIMARY KEY  (item_id)';
-		$query .= ') TYPE=MyISAM;';
+		$query .= ') ENGINE=MyISAM;';
 		sql_query($query);
 
 		$check_column = sql_query('SELECT * FROM '. sql_table('plug_multiple_categories'). ' WHERE 1=0');
@@ -143,7 +143,7 @@ ADD `ordid` INT( 11 ) DEFAULT '100' NOT NULL AFTER `parentid` ;
 		. 'sname varchar(40) not null,'
 		. 'sdesc varchar(200) not null,'
 		. ' PRIMARY KEY (scatid)'
-		. ') TYPE=MyISAM;';
+		. ') ENGINE=MyISAM;';
 		sql_query($query);
 		
 		//<sato(na)0.5.1j>
@@ -570,12 +570,8 @@ function orderKey(key, sequence) {
 			sql_query("DELETE FROM ". sql_table("plug_multiple_categories_sub") ." WHERE catid=$catid");
 			global $manager;
 			foreach ($subcats as $val) {
-				$manager->notify(
-								 'PostDeleteSubcat',
-								 array(
-									   'subcatid' => $val
-									  )
-								);
+				$eventdata = array('subcatid' => $val);
+				$manager->notify('PostDeleteSubcat', $eventdata);
 			}
 		}
 		
@@ -659,7 +655,7 @@ function orderKey(key, sequence) {
 					if ($params[0] != 'item') return;
 					$item = $this->_getItemObject(intval($itemid));//<sato(na)0.5j />
 					if ($item) {
-						$this->doTemplateVar(&$item);
+						$this->doTemplateVar($item);
 					}
 					return;
 					break;
@@ -783,7 +779,7 @@ function orderKey(key, sequence) {
 
 	function doTemplateCommentsVar(&$item, &$comment, $what='') {
 		if ($what == 'itemlink') {
-			$this->doTemplateVar(&$item, $what);
+			$this->doTemplateVar($item, $what);
 		}
 	}
 

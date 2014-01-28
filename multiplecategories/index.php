@@ -484,12 +484,9 @@ class NpMCategories_ADMIN {
 		sql_query('INSERT INTO '.$this->table.' SET sname="'. addslashes($name) .'"');
 		$newid = mysql_insert_id();
 		global $manager;
-		$manager->notify(
-						 'PostAddSubcat',
-						 array(
-							   'subcatid' => $newid
-							  )
-						);
+		
+		$eventdata = array('subcatid' => $newid);
+		$manager->notify('PostAddSubcat', $eventdata);
 		return $newid;
 	}
 
@@ -574,12 +571,9 @@ class NpMCategories_ADMIN {
 		$id = intval($id); //<sato(na)0.5j />
 		sql_query('DELETE FROM '.$this->table.' WHERE scatid=' . $id);
 		global $manager;
-		$manager->notify(
-						 'PostDeleteSubcat',
-						 array(
-							   'subcatid' => $id
-							  )
-						);
+
+		$eventdata = array('subcatid' => $id);
+		$manager->notify('PostDeleteSubcat', $eventdata);
 
 		$res = sql_query("SELECT categories, subcategories, item_id FROM ". sql_table("plug_multiple_categories") ." WHERE subcategories REGEXP '(^|,)$id(,|$)'");
 		$dell = array();
