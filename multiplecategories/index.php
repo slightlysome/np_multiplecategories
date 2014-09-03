@@ -36,7 +36,7 @@ class NpMCategories_ADMIN {
 		$this->version = $this->plug->checkMSCVersion();
 
 		// include language file for this plugin 
-		$language = ereg_replace( '[\\|/]', '', getLanguageName()); 
+		$language = str_replace( array('\\','/'), '', getLanguageName());
 		if (file_exists($this->plug->getDirectory().'language/'.$language.'.php')) 
 			include_once($this->plug->getDirectory().'language/'.$language.'.php'); 
 		else 
