@@ -67,15 +67,15 @@ class NP_MultipleCategories extends NucleusPlugin {
 		$this->createOption('addindex',      _NP_MCOP_ADDINDEX, "yesno",    'yes');
 		$this->createOption('addblogid_def', _NP_MCOP_ADBIDDEF, "yesno",    'no');
 		$this->createOption('addblogid',     _NP_MCOP_ADBLOGID, "yesno",    'yes');
-		$this->createOption("mainsep",       _NP_MCOP_MAINSEP,  "text",     " , ");
-		$this->createOption("addsep",        _NP_MCOP_ADDSEP,   "text",     " , ");
-		$this->createOption("subformat",     _NP_MCOP_SUBFOMT,  "text",     "<%category%> ( <%subcategory%> )");
-		$this->createOption("catheader",     _NP_MCOP_CATHEADR, "textarea", '<ul class="nobullets">' . "\n");
-		$this->createOption("catlist",       _NP_MCOP_CATLIST,  "textarea", '<li<%catflag%>><a href="<%catlink%>"><%catname%></a>(<%catamount%>)<%subcategorylist%></li>'."\n");
+		$this->createOption('mainsep',       _NP_MCOP_MAINSEP,  "text",     " , ");
+		$this->createOption('addsep',        _NP_MCOP_ADDSEP,   "text",     " , ");
+		$this->createOption('subformat',     _NP_MCOP_SUBFOMT,  "text",     "<%category%> ( <%subcategory%> )");
+		$this->createOption('catheader',     _NP_MCOP_CATHEADR, "textarea", '<ul class="nobullets">' . "\n");
+		$this->createOption('catlist',       _NP_MCOP_CATLIST,  "textarea", '<li <%catflag%>><a href="<%catlink%>"><%catname%></a>(<%catamount%>)<%subcategorylist%></li>'."\n");
 		$this->createOption("catfooter",     _NP_MCOP_CATFOOTR, "textarea", '</ul>' . "\n");
 		$this->createOption("catflag",       _NP_MCOP_CATFLAG,  "textarea", ' class="current"' . "\n");
 		$this->createOption("subheader",     _NP_MCOP_SUBHEADR, "textarea", '<ul>' . "\n");
-		$this->createOption("sublist",       _NP_MCOP_SUBLIST,  "textarea", '<li<%subflag%>><a href="<%sublink%>"><%subname%></a>(<%subamount%>)</li>'."\n");
+		$this->createOption("sublist",       _NP_MCOP_SUBLIST,  "textarea", '<li <%subflag%>><a href="<%sublink%>"><%subname%></a>(<%subamount%>)</li>'."\n");
 		$this->createOption("subfooter",     _NP_MCOP_SUBFOOTR, "textarea", '</ul>' . "\n");
 		$this->createOption("subflag",       _NP_MCOP_SUBFLAG,  "textarea", ' class="current"' . "\n");
 		$this->createOption("replace",       _NP_MCOP_REPLACE,  'yesno',    'no');
@@ -127,7 +127,8 @@ ADD `ordid` INT( 11 ) DEFAULT '100' NOT NULL AFTER `parentid` ;
 		sql_query($query);
 
 		$check_column = sql_query('SELECT * FROM '. sql_table('plug_multiple_categories'). ' WHERE 1=0');
-		for ($i=0; $i<mysql_num_fields($check_column); $i++) {
+		$total = mysql_num_fields($check_column);
+		for ($i=0; $i<$total; $i++) {
 			if ($meta = mysql_fetch_field($check_column)) {
 				$names[] = $meta->name;
 			}
@@ -242,13 +243,15 @@ ADD `ordid` INT( 11 ) DEFAULT '100' NOT NULL AFTER `parentid` ;
 			$subcatid = intRequestVar($this->getRequestName());
 		}
 		if ($subcatid && !$catid) {
-			$catid = (int)$this->_getParentCatID($subcatid);//Intval is not needed. ($subcatid) <sato(na)0.5j />
+            //Intval is not needed. ($subcatid) <sato(na)0.5j />
+			$catid = (int)$this->_getParentCatID($subcatid);
 			if (!$catid) {
 				$subcatid = null;
 				$catid = null;
 			}
 		} elseif ($subcatid) {
-			$pcatid = (int)$this->_getParentCatID($subcatid);//Intval is not needed. ($subcatid) <sato(na)0.5j />
+            //Intval is not needed. ($subcatid) <sato(na)0.5j />
+			$pcatid = (int)$this->_getParentCatID($subcatid);
 			if ($pcatid != $catid) {
                 $subcatid = null;
             }
@@ -259,23 +262,23 @@ ADD `ordid` INT( 11 ) DEFAULT '100' NOT NULL AFTER `parentid` ;
 	
 //modify start+++++++++
 	function checkMSCVersion(){
-				$res = sql_query("SHOW FIELDS from ".sql_table('plug_multiple_categories_sub') );
-				$fieldnames = array();
-				while ($co = mysql_fetch_assoc($res)) {
-					$fieldnames[] = $co['Field'];
-				}
-				if(in_array('ordid',$fieldnames)) {
-                    return 4;
-                }
-				if(in_array('parentid',$fieldnames)) {
-                    return 3;
-                }
-				return 2;
+        $res = sql_query("SHOW FIELDS from ".sql_table('plug_multiple_categories_sub') );
+        $fieldnames = array();
+        while ($co = mysql_fetch_assoc($res)) {
+            $fieldnames[] = $co['Field'];
+        }
+        if(in_array('ordid',$fieldnames)) {
+            return 4;
+        }
+        if(in_array('parentid',$fieldnames)) {
+            return 3;
+        }
+        return 2;
 	}
 //modify end+++++++++
 
-	function _getCategories($id){
-		$aResult = array();	
+	function _getCategories($id) {
+		$aResult = array();
 		$query = 'SELECT catid, cname as name, cdesc FROM '.sql_table('category').' WHERE cblog=' . (int)$id;
 		$res = sql_query($query);	
 		while ($a = mysql_fetch_assoc($res)){
@@ -297,9 +300,10 @@ ADD `ordid` INT( 11 ) DEFAULT '100' NOT NULL AFTER `parentid` ;
 	function _getScatIDs($id){
 		$aResult = array();	
 		$query = 'SELECT scatid FROM '.sql_table('plug_multiple_categories_sub').' WHERE catid=' . (int)$id;
-		$res = sql_query($query);	
+		$res = sql_query($query);
+        //<sato(na)0.5j />ultrarich
 		while ($row = mysql_fetch_row($res)){
-			$aResult[] = (int)$row[0]; //<sato(na)0.5j />ultrarich
+			$aResult[] = (int)$row[0];
 		} 
 		return $aResult;
 	}
@@ -551,13 +555,14 @@ function orderKey(key, sequence) {
 		if(
 		    ($this->_getMultiCategories($data['itemid']) || $this->_getSubCategories($data['itemid']))
             &&
-            count($selected) == 0
+            !$selected
             &&
-            count($s_selected) == 0
+            !$s_selected
         ) {
 			sql_query('DELETE FROM ' . sql_table('plug_multiple_categories') . ' WHERE item_id=' . (int)$data['itemid']);
 			return;
-		} elseif (count($selected) == 0 && count($s_selected) == 0) {
+		}
+		if (!$selected && !$s_selected) {
 			return;
 		}
 
@@ -678,14 +683,16 @@ function orderKey(key, sequence) {
 					if (!$subcatid || !$catid) {
                         return;
                     }
-					echo htmlspecialchars($this->_getScatDescFromID($subcatid), ENT_QUOTES);//Intval is not needed. ($subcatid) <sato(na)0.5j />
+                    //Intval is not needed. ($subcatid) <sato(na)0.5j />
+					echo htmlspecialchars($this->_getScatDescFromID($subcatid), ENT_QUOTES);
 					return;
 					break;
 				case 'name':
 					if (!$subcatid || !$catid) {
                         return;
                     }
-					echo htmlspecialchars($this->_getScatNameFromID($subcatid), ENT_QUOTES);//Intval is not needed. ($subcatid) <sato(na)0.5j />
+                    //Intval is not needed. ($subcatid) <sato(na)0.5j />
+					echo htmlspecialchars($this->_getScatNameFromID($subcatid), ENT_QUOTES);
 					return;
 					break;
 				case 'url':
@@ -698,7 +705,8 @@ function orderKey(key, sequence) {
 						$b =& $manager->getBlog($CONF['DefaultBlog']);
 					}
 					$this->_setCommonData($b->getID());
-					$sparams = array_merge($this->param, array($this->getRequestName() => (int)$subcatid));//<sato(na)0.5j />
+                    //<sato(na)0.5j />
+					$sparams = array_merge($this->param, array($this->getRequestName() => (int)$subcatid));
 					$url = createCategoryLink((int)$catid, $sparams);//<sato(na)0.5j />
 					if ($CONF['URLMode'] !== 'pathinfo') {
 						list(,$temp_param) = explode("?",$url);
