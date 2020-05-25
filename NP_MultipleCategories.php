@@ -1064,7 +1064,7 @@ function orderKey(key, sequence) {
 		if ($archive) {
 			$blogurl = createArchiveLink($blogid, $archive, '');
 			if ($CONF['URLMode'] !== 'pathinfo') {
-				list(,$temp_param) = explode("?", $url);
+				list(,$temp_param) = explode("?", $blogurl);
 				$blogurl = $this->url. "?" . $temp_param;
 			}
 			$linkparams['blogid'] = $blogid;
