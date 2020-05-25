@@ -118,15 +118,15 @@ ADD `ordid` INT( 11 ) DEFAULT '100' NOT NULL AFTER `parentid` ;
 
 */
 		// create the table that will keep track of notifications
-		$query =  'CREATE TABLE IF NOT EXISTS '. sql_table('plug_multiple_categories'). '(';	
-		$query .= ' item_id int(11) NOT NULL,';
-		$query .= ' categories varchar(255) not null,';		
-		$query .= ' subcategories varchar(255) not null,';		
-		$query .= ' PRIMARY KEY  (item_id)';
-		$query .= ') ENGINE=MyISAM;';
-		sql_query($query);
+		sql_query(sprintf(
+            'CREATE TABLE IF NOT EXISTS %s( item_id int(11) NOT NULL, categories varchar(255) not null, subcategories varchar(255) not null, PRIMARY KEY  (item_id)) ENGINE=MyISAM;'
+            , sql_table('plug_multiple_categories')
+        ));
 
-		$check_column = sql_query('SELECT * FROM '. sql_table('plug_multiple_categories'). ' WHERE 1=0');
+		$check_column = sql_query(sprintf(
+		    'SELECT * FROM %s WHERE 1=0'
+            , sql_table('plug_multiple_categories')
+        ));
 		$total = mysql_num_fields($check_column);
 		for ($i=0; $i<$total; $i++) {
 			if ($meta = mysql_fetch_field($check_column)) {
@@ -134,44 +134,46 @@ ADD `ordid` INT( 11 ) DEFAULT '100' NOT NULL AFTER `parentid` ;
 			}
 		}
 		if (!in_array("subcategories",$names)) {
-			sql_query ('ALTER TABLE '.sql_table('plug_multiple_categories').' ADD subcategories varchar(255) not null');
-			sql_query('ALTER TABLE ' .sql_table('plug_multiple_categories').' MODIFY categories varchar(255) not null');
+			sql_query (sprintf(
+			    'ALTER TABLE %s ADD subcategories varchar(255) not null'
+                , sql_table('plug_multiple_categories')
+            ));
+			sql_query(sprintf(
+			    'ALTER TABLE %s MODIFY categories varchar(255) not null'
+                , sql_table('plug_multiple_categories')
+            ));
 		}
-		$query =  'CREATE TABLE IF NOT EXISTS '. sql_table('plug_multiple_categories_sub'). '('
-		. 'scatid int(11) not null auto_increment,'
-		. 'catid int(11) not null,'
-		. 'sname varchar(40) not null,'
-		. 'sdesc varchar(200) not null,'
-		. ' PRIMARY KEY (scatid)'
-		. ') ENGINE=MyISAM;';
-		sql_query($query);
+		sql_query(sprintf(
+            'CREATE TABLE IF NOT EXISTS %s(scatid int(11) not null auto_increment,catid int(11) not null,sname varchar(40) not null,sdesc varchar(200) not null, PRIMARY KEY (scatid)) ENGINE=MyISAM;'
+            , sql_table('plug_multiple_categories_sub')
+        ));
 		
 		//<sato(na)0.5.1j>
 		//table Upgrade
 		if ($this->checkMSCVersion() == 2){
-			$q = "
+            sql_query(sprintf("
 				ALTER TABLE 
-					`".sql_table('plug_multiple_categories_sub')."` 
+					`%s` 
 				ADD `parentid` INT( 11 ) DEFAULT   '0' NOT NULL AFTER `scatid` , 
 				ADD `ordid`    INT( 11 ) DEFAULT '100' NOT NULL AFTER `parentid`
-			";
+			"
+                , sql_table('plug_multiple_categories_sub')
+            ));
 		} elseif ($this->version == 3){
-			$q = "
+            sql_query(sprintf("
 				ALTER TABLE 
-					`".sql_table('plug_multiple_categories_sub')."` 
+					`%s` 
 				ADD `ordid`    INT( 11 ) DEFAULT '100' NOT NULL AFTER `parentid`
-			";
+			", sql_table('plug_multiple_categories_sub')
+            ));
 		}
-		if ($q) {
-            sql_query($q);
-        }
 		//</sato(na)0.5.1j>
 	}
 
 	function unInstall() {
-		if ($this->getOption('del_uninstall') == "yes") {
-			sql_query('DROP TABLE ' .sql_table('plug_multiple_categories'));
-			sql_query('DROP TABLE ' .sql_table('plug_multiple_categories_sub'));
+		if ($this->getOption('del_uninstall') === 'yes') {
+			sql_query(sprintf('DROP TABLE %s', sql_table('plug_multiple_categories')));
+			sql_query(sprintf('DROP TABLE %s', sql_table('plug_multiple_categories_sub')));
 		}
 	}
 
@@ -206,7 +208,7 @@ ADD `ordid` INT( 11 ) DEFAULT '100' NOT NULL AFTER `parentid` ;
 	}
 	
 	function getRequestName() {
-		return "subcatid";
+		return 'subcatid';
 	}
 	
 	function init() {
@@ -262,7 +264,10 @@ ADD `ordid` INT( 11 ) DEFAULT '100' NOT NULL AFTER `parentid` ;
 	
 //modify start+++++++++
 	function checkMSCVersion(){
-        $res = sql_query("SHOW FIELDS from ".sql_table('plug_multiple_categories_sub') );
+        $res = sql_query(sprintf(
+            'SHOW FIELDS from %s'
+            , sql_table('plug_multiple_categories_sub')
+        ));
         $fieldnames = array();
         while ($co = mysql_fetch_assoc($res)) {
             $fieldnames[] = $co['Field'];
@@ -278,9 +283,12 @@ ADD `ordid` INT( 11 ) DEFAULT '100' NOT NULL AFTER `parentid` ;
 //modify end+++++++++
 
 	function _getCategories($id) {
-		$aResult = array();
-		$query = 'SELECT catid, cname as name, cdesc FROM '.sql_table('category').' WHERE cblog=' . (int)$id;
-		$res = sql_query($query);	
+		$res = sql_query(sprintf(
+            'SELECT catid, cname as name, cdesc FROM %s WHERE cblog=%d'
+            , sql_table('category')
+            , (int)$id
+        ));
+        $aResult = array();
 		while ($a = mysql_fetch_assoc($res)){
 			array_push($aResult,$a);
 		} 
@@ -288,44 +296,70 @@ ADD `ordid` INT( 11 ) DEFAULT '100' NOT NULL AFTER `parentid` ;
 	}
 
 	function _getDefinedScats($id){
-		$aResult = array();	
-		$query = 'SELECT * FROM '.sql_table('plug_multiple_categories_sub').' WHERE catid=' . (int)$id;
-		$res = sql_query($query);	
-		while ($a = mysql_fetch_assoc($res)){
+		$res = sql_query(sprintf(
+            'SELECT * FROM %s WHERE catid=%d'
+            , sql_table('plug_multiple_categories_sub')
+            , (int)$id
+        ));
+        $aResult = array();
+        while ($a = mysql_fetch_assoc($res)){
 			array_push($aResult,$a);
 		} 
 		return $aResult;
 	}
 	
 	function _getScatIDs($id){
-		$aResult = array();	
-		$query = 'SELECT scatid FROM '.sql_table('plug_multiple_categories_sub').' WHERE catid=' . (int)$id;
-		$res = sql_query($query);
+		$res = sql_query(sprintf(
+            'SELECT scatid FROM %s WHERE catid=%d'
+            , sql_table('plug_multiple_categories_sub')
+            , (int)$id
+        ));
         //<sato(na)0.5j />ultrarich
-		while ($row = mysql_fetch_row($res)){
+        $aResult = array();
+        while ($row = mysql_fetch_row($res)){
 			$aResult[] = (int)$row[0];
 		} 
 		return $aResult;
 	}
 	
 	function _getCatNameFromID($id){
-		return quickQuery('SELECT cname as result FROM '.sql_table('category').' WHERE catid='. (int)$id);
+		return quickQuery(sprintf(
+		    "SELECT cname as result FROM %s WHERE catid=%d"
+            , sql_table('category')
+            , (int)$id
+        ));
 	}
 
 	function _getScatNameFromID($id) {
-		return quickQuery('SELECT sname as result FROM '.sql_table('plug_multiple_categories_sub').' WHERE scatid='. (int)$id);
+		return quickQuery(sprintf(
+		    'SELECT sname as result FROM %s WHERE scatid=%d'
+            , sql_table('plug_multiple_categories_sub')
+            , (int)$id
+        ));
 	}
 
 	function _getScatDescFromID($id) {
-		return quickQuery('SELECT sdesc as result FROM '.sql_table('plug_multiple_categories_sub').' WHERE scatid='. (int)$id);
+		return quickQuery(sprintf(
+		    'SELECT sdesc as result FROM %s WHERE scatid=%d'
+            , sql_table('plug_multiple_categories_sub')
+            , (int)$id
+        ));
 	}
 
 	function _getScatIDFromName($name) {
-		return quickQuery('SELECT scatid as result FROM '.sql_table('plug_multiple_categories_sub').' WHERE sname="'.addslashes($name).'"');
+		return quickQuery(sprintf(
+		    'SELECT scatid as result FROM %s WHERE sname="%s"'
+            , sql_table('plug_multiple_categories_sub')
+            , addslashes($name)
+        ));
 	}
 
 	function _getParentCatID($id) {
-		return quickQuery('SELECT catid as result FROM '.sql_table('plug_multiple_categories_sub').' WHERE scatid='. (int)$id);
+		return quickQuery(sprintf(
+		    'SELECT catid as result FROM %s WHERE scatid=%d'
+            , sql_table('plug_multiple_categories_sub')
+            , (int)$id
+        ));
 	}
 	
 	function _getScatMap($numarray) {
@@ -337,20 +371,28 @@ ADD `ordid` INT( 11 ) DEFAULT '100' NOT NULL AFTER `parentid` ;
             $numstr = 0;
         }//<mod by shizuki>
 		//$res = sql_query("SELECT catid, scatid, sname FROM ". sql_table("plug_multiple_categories_sub") ." WHERE scatid in (".$numstr.")");
-		$sql_str = "SELECT catid, scatid, sname FROM ". sql_table("plug_multiple_categories_sub").
-		" WHERE scatid in (".$numstr.") ORDER BY FIND_IN_SET(scatid,'".$numstr."')";
-		$res = sql_query($sql_str);
+		$res = sql_query(sprintf(
+		    "SELECT catid, scatid, sname FROM %s WHERE scatid in (%d) ORDER BY FIND_IN_SET(scatid,'%d')"
+            , sql_table('plug_multiple_categories_sub')
+            , $numstr
+            , $numstr
+        ));
 		//</sato(na)t1855>
 		while ($o = mysql_fetch_object($res)) {
-			if (!isset($aResult[$o->catid])) $aResult[$o->catid] = array();
+			if (!isset($aResult[$o->catid])) {
+                $aResult[$o->catid] = array();
+            }
 			$aResult[$o->catid][$o->scatid] = $o->sname;
 		}
 		return $aResult;
 	}
 
 	function _getMultiCategories($itemid){
-		$query = "SELECT categories FROM ".sql_table('plug_multiple_categories')." WHERE item_id=". (int)$itemid;
-		$result = sql_query($query); 
+		$result = sql_query(sprintf(
+		    'SELECT categories FROM %s WHERE item_id=%d'
+            , sql_table('plug_multiple_categories')
+            , (int)$itemid
+        ));
 		if(mysql_num_rows($result)==0) {
             return;
         }
@@ -359,8 +401,11 @@ ADD `ordid` INT( 11 ) DEFAULT '100' NOT NULL AFTER `parentid` ;
 	}
 	
 	function _getSubCategories($itemid){
-		$query = "SELECT subcategories FROM ".sql_table('plug_multiple_categories')." WHERE item_id=". (int)$itemid;
-		$result = sql_query($query); 
+		$result = sql_query(sprintf(
+		    'SELECT subcategories FROM %s WHERE item_id=%d'
+            , sql_table('plug_multiple_categories')
+            , (int)$itemid
+        ));
 		if(mysql_num_rows($result)==0) {
             return;
         }
@@ -373,41 +418,59 @@ ADD `ordid` INT( 11 ) DEFAULT '100' NOT NULL AFTER `parentid` ;
 		return explode(',', $subOrderString);
 	}
 	function _getSubOrder($pid){
-		$sql_str  = 'SELECT scatid FROM '.sql_table('plug_multiple_categories_sub').' WHERE parentid='. (int)$pid .' ORDER BY ordid'; //<sato(na)0.5j />
-		$qid_scat = mysql_query($sql_str);
-		if ($qid_scat === FALSE) {
+	    //<sato(na)0.5j />
+		$qid_scat = mysql_query(sprintf(
+            'SELECT scatid FROM %s WHERE parentid=%d ORDER BY ordid'
+            , sql_table('plug_multiple_categories_sub')
+            , (int)$pid
+        ));
+		if ($qid_scat === false) {
             return '';
         } //<sato(na)0.403j />
 		$scat_str = '';
-		while ($row_scat = mysql_fetch_object($qid_scat)) $scat_str .= ',' . (int)$row_scat->scatid . $this->_getSubOrder($row_scat->scatid); //<sato(na)0.5j />
+		while ($row_scat = mysql_fetch_object($qid_scat)) {
+            $scat_str .= sprintf(
+                ',%d%s'
+                , (int)$row_scat->scatid
+                , $this->_getSubOrder($row_scat->scatid)
+            );
+        } //<sato(na)0.5j />
 		return $scat_str;
 	}
 	function permuteSubcategories($subcategories){
-		$itemScats = explode(',', $subcategories);
-		$retArray  = array_intersect($this->subOrderArray, $itemScats);
-		$ret = implode(',', $retArray);
-		return $ret;
+        return implode(
+            ','
+            , array_intersect(
+                $this->subOrderArray
+                , explode(
+                    ','
+                    , $subcategories
+                )
+            )
+        );
 	}
 	//</sato(na)t1855>
 	//<sato(na)0.402j>
 	function doAction($type) {
-		$catid    = intRequestVar('catid');
-		$subcatid = intRequestVar('subcatid');
 		echo '
 function orderKey(key, sequence) {
 	var scatDat = new Array();';
-		$query = "SELECT scatid, sname, sdesc FROM ".sql_table('plug_multiple_categories_sub')." WHERE parentid=$subcatid AND catid=$catid";
-		$res   = sql_query($query);
+		$res   = sql_query(sprintf(
+            'SELECT scatid, sname, sdesc FROM %s WHERE parentid=%s AND catid=%s'
+            , sql_table('plug_multiple_categories_sub')
+            , intRequestVar('subcatid')
+            , intRequestVar('catid')
+        ));
 		$i     = 0;
 		while($row = mysql_fetch_array($res)) {
 			//<sato(na)0.5j>
-			echo 'scatDat['.($i++).'] = new setScatDat('.
-				(int)$row['scatid'] .
-			' , "'.
-			htmlspecialchars($row['sname'], ENT_QUOTES).
-			'", "'.
-			htmlspecialchars($row['sdesc'], ENT_QUOTES).
-			'");'."\n";
+			echo sprintf(
+			    'scatDat[%d] = new setScatDat(%d , "%s", "%s");' . "\n"
+                , $i++
+                , (int)$row['scatid']
+                , htmlspecialchars($row['sname'], ENT_QUOTES)
+                , htmlspecialchars($row['sdesc'], ENT_QUOTES)
+            );
 			//</sato(na)0.5j>
 		}
 		echo '
@@ -418,7 +481,11 @@ function orderKey(key, sequence) {
 	//</sato(na)0.402j>
 	
 	function _getItemObject($id) {
-		$res = sql_query("SELECT inumber as itemid, icat as catid FROM ".sql_table('item')." WHERE inumber=". (int)$id);
+		$res = sql_query(sprintf(
+		    'SELECT inumber as itemid, icat as catid FROM %s WHERE inumber=%d'
+            , sql_table('item')
+            , (int)$id)
+        );
 		if ($res) {
 			return mysql_fetch_object($res);
 		}
@@ -428,7 +495,7 @@ function orderKey(key, sequence) {
 		$aCategories = $this->_getCategories($data['blog']->blogid);
 		if(count($aCategories) > 1) {
 			$this->showForm($aCategories,$data['itemid']);
-		} elseif (count($aCategories) > 0) {
+		} elseif (count($aCategories)) {
 			$this->showSubForm($aCategories,$data['itemid']);
 		}
 	}
@@ -437,7 +504,7 @@ function orderKey(key, sequence) {
 		$aCategories = $this->_getCategories($data['blog']->blogid);
 		if(count($aCategories) > 1) {
 			$this->showForm($aCategories,$data['itemid']);
-		} elseif (count($aCategories) > 0) {
+		} elseif (count($aCategories)) {
 			$this->showSubForm($aCategories,$data['itemid']);
 		}
 	}
@@ -458,16 +525,29 @@ function orderKey(key, sequence) {
 		echo '<h3>Multiple Categories</h3>'; 
 		echo "<fieldset><legend>Sub Categories</legend>";
 		//<sato(na)>
-		$sql_str = 'SELECT * FROM '.sql_table('plug_multiple_categories_sub').' WHERE catid='. (int)$aCategories[0]['catid'] .' AND  parentid=0'; //<sato(na)0.5j />
-		$qid = sql_query($sql_str);
+        //<sato(na)0.5j />
+		$qid = sql_query(sprintf(
+            'SELECT * FROM %s WHERE catid=%d AND parentid=0'
+            , sql_table('plug_multiple_categories_sub')
+            , (int)$aCategories[0]['catid']
+        ));
 		while ($aSub = mysql_fetch_assoc($qid)) {
-			$schecked = (in_array($aSub['scatid'], $itemScats)) ? " checked=checked" : "";
-			echo '<input type="checkbox" id="npmc_scat'.$aSub['scatid'].'" name="npmc_scat['.$aSub['scatid'].']"'.$schecked.' value="'.$aSub['scatid'].'" />'; 
-			echo '<label for="npmc_scat'.$aSub['scatid'].'">'.htmlspecialchars($aSub['sname'], ENT_QUOTES).'</label><br />'; //<sato(na)0.5j />
+			echo sprintf(
+			    '<input type="checkbox" id="npmc_scat%s" name="npmc_scat[%s]"%s value="%s" />'
+                , $aSub['scatid']
+                , $aSub['scatid']
+                , in_array($aSub['scatid'], $itemScats) ? ' checked=checked' : ''
+                , $aSub['scatid']
+            );
+			echo sprintf(
+			    '<label for="npmc_scat%s">%s</label><br />'
+                , $aSub['scatid']
+                , htmlspecialchars($aSub['sname'], ENT_QUOTES)
+            ); //<sato(na)0.5j />
 			$this->showFormHierarchical($aSub['scatid'], $itemScats); //<sato(na)0.5j />
 		}
 		//</sato(na)>
-		echo "</fieldset>";
+		echo '</fieldset>';
 	}
 	
 	function showForm($aCategories,$itemid) {
