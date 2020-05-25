@@ -606,7 +606,7 @@ function orderKey(key, sequence) {
 		}
 	}
 
-	function doSKinVar(){
+	function doSKinVar($skinType){
 		global $blog, $catid, $CONF, $manager, $itemid, $subcatid, $startpos, $archive;
 		
 		$params = func_get_args();
