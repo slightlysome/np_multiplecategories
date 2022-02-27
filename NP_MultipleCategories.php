@@ -115,9 +115,9 @@ class NP_MultipleCategories extends NucleusPlugin
 			'SELECT * FROM %s WHERE 1=0',
 			sql_table('plug_multiple_categories')
 		));
-		$total = mysql_num_fields($check_column);
+		$total = sql_num_fields($check_column);
 		for ($i = 0; $i < $total; $i++) {
-			if ($meta = mysql_fetch_field($check_column)) {
+			if ($meta = sql_fetch_field($check_column)) {
 				$names[] = $meta->name;
 			}
 		}
@@ -271,7 +271,7 @@ class NP_MultipleCategories extends NucleusPlugin
 			sql_table('plug_multiple_categories_sub')
 		));
 		$fieldnames = array();
-		while ($co = mysql_fetch_assoc($res)) {
+		while ($co = sql_fetch_assoc($res)) {
 			$fieldnames[] = $co['Field'];
 		}
 		if (in_array('ordid', $fieldnames)) {
@@ -292,7 +292,7 @@ class NP_MultipleCategories extends NucleusPlugin
 			(int)$id
 		));
 		$aResult = array();
-		while ($a = mysql_fetch_assoc($res)) {
+		while ($a = sql_fetch_assoc($res)) {
 			array_push($aResult, $a);
 		}
 		return $aResult;
@@ -306,7 +306,7 @@ class NP_MultipleCategories extends NucleusPlugin
 			(int)$id
 		));
 		$aResult = array();
-		while ($a = mysql_fetch_assoc($res)) {
+		while ($a = sql_fetch_assoc($res)) {
 			array_push($aResult, $a);
 		}
 		return $aResult;
@@ -321,7 +321,7 @@ class NP_MultipleCategories extends NucleusPlugin
 		));
 		//<sato(na)0.5j />ultrarich
 		$aResult = array();
-		while ($row = mysql_fetch_row($res)) {
+		while ($row = sql_fetch_row($res)) {
 			$aResult[] = (int)$row[0];
 		}
 		return $aResult;
@@ -389,7 +389,7 @@ class NP_MultipleCategories extends NucleusPlugin
 			$numstr
 		));
 		//</sato(na)t1855>
-		while ($o = mysql_fetch_object($res)) {
+		while ($o = sql_fetch_object($res)) {
 			if (!isset($aResult[$o->catid])) {
 				$aResult[$o->catid] = array();
 			}
@@ -405,10 +405,10 @@ class NP_MultipleCategories extends NucleusPlugin
 			sql_table('plug_multiple_categories'),
 			(int)$itemid
 		));
-		if (mysql_num_rows($result) == 0) {
+		if (sql_num_rows($result) == 0) {
 			return;
 		}
-		$row = mysql_fetch_row($result);
+		$row = sql_fetch_row($result);
 		return $row[0];
 	}
 
@@ -419,10 +419,10 @@ class NP_MultipleCategories extends NucleusPlugin
 			sql_table('plug_multiple_categories'),
 			(int)$itemid
 		));
-		if (mysql_num_rows($result) == 0) {
+		if (sql_num_rows($result) == 0) {
 			return;
 		}
-		$row = mysql_fetch_row($result);
+		$row = sql_fetch_row($result);
 		return $row[0];
 	}
 	//<sato(na)t1855>
@@ -434,7 +434,7 @@ class NP_MultipleCategories extends NucleusPlugin
 	function _getSubOrder($pid)
 	{
 		//<sato(na)0.5j />
-		$qid_scat = mysql_query(sprintf(
+		$qid_scat = sql_query(sprintf(
 			'SELECT scatid FROM %s WHERE parentid=%d ORDER BY ordid',
 			sql_table('plug_multiple_categories_sub'),
 			(int)$pid
@@ -443,7 +443,7 @@ class NP_MultipleCategories extends NucleusPlugin
 			return '';
 		} //<sato(na)0.403j />
 		$scat_str = '';
-		while ($row_scat = mysql_fetch_object($qid_scat)) {
+		while ($row_scat = sql_fetch_object($qid_scat)) {
 			$scat_str .= sprintf(
 				',%d%s',
 				(int)$row_scat->scatid,
@@ -479,7 +479,7 @@ function orderKey(key, sequence) {
 			intRequestVar('catid')
 		));
 		$i     = 0;
-		while ($row = mysql_fetch_array($res)) {
+		while ($row = sql_fetch_array($res)) {
 			//<sato(na)0.5j>
 			echo sprintf(
 				'scatDat[%d] = new setScatDat(%d , "%s", "%s");' . "\n",
@@ -507,7 +507,7 @@ function orderKey(key, sequence) {
 			)
 		);
 		if ($res) {
-			return mysql_fetch_object($res);
+			return sql_fetch_object($res);
 		}
 	}
 
@@ -554,7 +554,7 @@ function orderKey(key, sequence) {
 			sql_table('plug_multiple_categories_sub'),
 			(int)$aCategories[0]['catid']
 		));
-		while ($aSub = mysql_fetch_assoc($qid)) {
+		while ($aSub = sql_fetch_assoc($qid)) {
 			echo sprintf(
 				'<input type="checkbox" id="npmc_scat%s" name="npmc_scat[%s]"%s value="%s" />',
 				$aSub['scatid'],
@@ -609,9 +609,9 @@ function orderKey(key, sequence) {
 			//<sato(na)>
 			$sql_str = 'SELECT * FROM ' . sql_table('plug_multiple_categories_sub') . ' WHERE catid=' . (int)$aCategory['catid'] . ' AND parentid=0'; //<sato(na)0.5j />
 			$qid = sql_query($sql_str);
-			if (mysql_num_rows($qid)) {
+			if (sql_num_rows($qid)) {
 				echo "<fieldset style=\"margin-left:1.5em;border:none\">";
-				while ($aSub = mysql_fetch_assoc($qid)) {
+				while ($aSub = sql_fetch_assoc($qid)) {
 					$schecked = (in_array($aSub['scatid'], $itemScats)) ? " checked=checked" : "";
 					echo '<input type="checkbox" id="npmc_scat' . $aSub['scatid'] . '" name="npmc_scat[' . $aSub['scatid'] . ']"' . $schecked . ' value="' . $aSub['scatid'] . '" />';
 					echo '<label for="npmc_scat' . $aSub['scatid'] . '">' . htmlspecialchars($aSub['sname'], ENT_QUOTES) . '</label><br />'; //<sato(na)0.5j />
@@ -628,9 +628,9 @@ function orderKey(key, sequence) {
 	function showFormHierarchical($parentid, $itemScats)
 	{
 		$qid = sql_query('SELECT * FROM ' . sql_table('plug_multiple_categories_sub') . ' WHERE parentid=' . (int)$parentid);
-		if (mysql_num_rows($qid)) {
+		if (sql_num_rows($qid)) {
 			echo "<div style=\"margin-left:3em;border:none\">";
-			while ($aSub = mysql_fetch_assoc($qid)) {
+			while ($aSub = sql_fetch_assoc($qid)) {
 				$schecked = (in_array($aSub['scatid'], $itemScats)) ? " checked=checked" : "";
 				echo '<input type="checkbox" id="npmc_scat' . $aSub['scatid'] . '" name="npmc_scat[' . $aSub['scatid'] . ']"' . $schecked . ' value="' . $aSub['scatid'] . '" />';
 				echo '<label for="npmc_scat' . $aSub['scatid'] . '">' . htmlspecialchars($aSub['sname'], ENT_QUOTES) . '</label><br />'; //<sato(na)0.5j />
@@ -744,7 +744,7 @@ function orderKey(key, sequence) {
 		$del = array();
 		$up = array();
 
-		while ($o = mysql_fetch_object($res)) {
+		while ($o = sql_fetch_object($res)) {
 			$o->categories = preg_replace("/^(?:(.*),)?$catid(?:,(.*))?$/", "$1,$2", $o->categories);
 			$o->subcategories = preg_replace("/^(?:(.*),)?$catid(?:,(.*))?$/", "$1,$2", $o->subcategories);
 			if ((!$o->categories || $o->categories === ',') && (!$o->subcategories || $o->subcategories === ',')) {
@@ -1213,13 +1213,13 @@ function orderKey(key, sequence) {
 		$query = 'SELECT inumber,icat FROM ' . sql_table('item') .
 			' WHERE iblog=' . (int)$blogid;
 		$res = sql_query($query);
-		while ($row = mysql_fetch_row($res)) {
+		while ($row = sql_fetch_row($res)) {
 			$items[$row[0]] = true;
 			$catdata[$row[1]][$row[0]] = true;
 		}
 		$query = 'SELECT item_id, categories, subcategories FROM ' . sql_table('plug_multiple_categories');
 		$res = sql_query($query);
-		while ($row = mysql_fetch_row($res)) {
+		while ($row = sql_fetch_row($res)) {
 			if (!$items[$row[0]]) continue;
 			foreach (explode(',', $row[1]) as $cat) {
 				if ($cat) {
@@ -1248,7 +1248,7 @@ function orderKey(key, sequence) {
 			$rchar = $this->getOption('replacechar');
 		}
 
-		while ($data = mysql_fetch_assoc($res)) {
+		while ($data = sql_fetch_assoc($res)) {
 			$data['catid'] = (int)$data['catid']; //<sato(na)0.5j />ultrarich
 			$data['blogid'] = $blogid;
 			$data['blogurl'] = $blogurl;
@@ -1278,10 +1278,10 @@ function orderKey(key, sequence) {
 
 			$query = 'SELECT scatid as subcatid, sname as subname, sdesc as subdesc FROM ' . sql_table('plug_multiple_categories_sub') . ' WHERE catid=' . $data['catid'] . ' ORDER BY sname ASC';
 			$sres = sql_query($query);
-			if (mysql_num_rows($sres) > 0) {
+			if (sql_num_rows($sres) > 0) {
 				$subliststr = "";
 
-				while ($sdata = mysql_fetch_assoc($sres)) {
+				while ($sdata = sql_fetch_assoc($sres)) {
 					$sdata['subcatid'] = (int)$sdata['subcatid']; //<sato(na)0.5j />ultrarich
 					/* begin modification by kat */
 					/*
@@ -1293,7 +1293,7 @@ function orderKey(key, sequence) {
 						. ' and i.inumber=p.item_id'
 						. ' and p.subcategories REGEXP "(^|,)'.$sdata['subcatid'].'(,|$)"'
 					);
-					if ($ares && $row = mysql_fetch_row($ares)) {
+					if ($ares && $row = sql_fetch_row($ares)) {
 					*/
 					if ($row[0] = count($scatdata[$sdata['subcatid']])) {
 						/* end modification by kat */
@@ -1321,12 +1321,12 @@ function orderKey(key, sequence) {
 					}
 				}
 			}
-			mysql_free_result($sres);
+			sql_free_result($sres);
 
 			echo TEMPLATE::fill($tp['catlist'], $data);
 		}
 
-		mysql_free_result($res);
+		sql_free_result($res);
 
 		echo TEMPLATE::fill(
 			$this->getOption('catfooter'),
@@ -1392,7 +1392,7 @@ function orderKey(key, sequence) {
 
 		$res = sql_query($query);
 
-		while ($current = mysql_fetch_object($res)) {
+		while ($current = sql_fetch_object($res)) {
 			$current->itime = strtotime($current->itime);	// string time -> unix timestamp
 			$data = array('blogid' => $b->getID());
 
@@ -1413,7 +1413,7 @@ function orderKey(key, sequence) {
 			$temp = TEMPLATE::fill($template['list'], $data);
 			echo strftime($temp, $current->itime);
 		}
-		mysql_free_result($res);
+		sql_free_result($res);
 
 		echo TEMPLATE::fill($template['footer'], array('blogid' => $b->getID()));
 	}

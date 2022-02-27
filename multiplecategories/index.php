@@ -79,7 +79,7 @@ class NpMCategories_ADMIN {
 		}
 		
 		$res = sql_query('SELECT bnumber, bname FROM '.sql_table('blog'));
-		while ($o = mysql_fetch_object($res)) {
+		while ($o = sql_fetch_object($res)) {
 			echo '<h3 style="padding-left: 0px">' . htmlspecialchars($o->bname) . '</h3>';
 ?>
 <table>
@@ -224,7 +224,7 @@ class NpMCategories_ADMIN {
 		$catid = intRequestVar('catid');
 		
 		$res = sql_query("SELECT * FROM ".$this->table." WHERE scatid=$scatid and catid=$catid");
-		if ($o = mysql_fetch_object($res)) {
+		if ($o = sql_fetch_object($res)) {
 
 			$oPluginAdmin->start();
 
@@ -482,7 +482,7 @@ class NpMCategories_ADMIN {
 
 	function createSubcat($name) {
 		sql_query('INSERT INTO '.$this->table.' SET sname="'. addslashes($name) .'"');
-		$newid = mysql_insert_id();
+		$newid = sql_insert_id();
 		global $manager;
 		
 		$eventdata = array('subcatid' => $newid);
@@ -500,7 +500,7 @@ class NpMCategories_ADMIN {
 		foreach ($this->plug->_setSubOrder() as $val) { //$val : _getSubOrder intval($row_scat->scatid)
 			$query = 'SELECT * FROM '.$this->table.' WHERE scatid=' . intval($val);
 			$res   = sql_query($query);
-			$row   = mysql_fetch_array($res);
+			$row   = sql_fetch_array($res);
 			if ($row['catid'] == $catid){
 				$levelstr = '';
 				for ($i=0; $i<$this->getDepth($val, 0); $i++) $levelstr .= "&hellip;&hellip;";
@@ -523,7 +523,7 @@ class NpMCategories_ADMIN {
 	}
 	function descendantCheck($parentid, $checkid){
 		$res = sql_query("SELECT scatid FROM ".$this->table." WHERE parentid=".intval($parentid)); //<sato(na)0.5j />
-		while ($o = mysql_fetch_object($res)) {
+		while ($o = sql_fetch_object($res)) {
 			if ($o->scatid == $checkid) {
 				return TRUE;
 			} else {
@@ -579,7 +579,7 @@ class NpMCategories_ADMIN {
 		$dell = array();
 		$up = array();
 
-		while ($o = mysql_fetch_object($res)) {
+		while ($o = sql_fetch_object($res)) {
 			$o->subcategories = preg_replace("/^(?:(.*),)?$catid(?:,(.*))?$/","$1,$2",$o->subcategories);
 			if (!$o->categories && (!$o->subcategories || $o->subcategories == ',')) {
 				$del[] = intval($o->item_id); //<sato(na)0.5j />ultrarich
@@ -725,9 +725,9 @@ class NpMCategories_ADMIN {
 
         $categoryArray = array();
         $flatList      = array();
-        if (!mysql_num_rows($resultSet)) return $categoryArray;
+        if (!sql_num_rows($resultSet)) return $categoryArray;
         
-        while ($row = mysql_fetch_array($resultSet)) {
+        while ($row = sql_fetch_array($resultSet)) {
             $isSelected = ($row["scatid"] == $selected)?1:0;
             $flatList[] = array(
                             //<sato(na)0.5j>
@@ -906,12 +906,12 @@ class NpMCategories_ADMIN {
         $q = "select scatid, sname, sdesc from ".$this->table." where parentid = '$subcatid' and catid=$catid";//<sato(na)0.402j />
         $q .= ($this->version >= 4) ? ' order by ordid, scatid ASC': ' order by scatid ASC';
         $result = sql_query($q);
-        if(mysql_num_rows($result) < 2){
+        if(sql_num_rows($result) < 2){
         	return FALSE;
         }
         $text .= "<tr><td class=main style='border:0px;padding:0px;'><select name=order multiple size=15>";
         //<sato(na)0.402j>
-        while($row = mysql_fetch_array($result)){
+        while($row = sql_fetch_array($result)){
             //<sato(na)0.5j>
             $text .= "<option value=".$row['scatid'].">".$row['scatid']."&nbsp;[&nbsp;".
                      htmlspecialchars($row['sname'], ENT_QUOTES).
@@ -931,7 +931,7 @@ class NpMCategories_ADMIN {
 		$aResult = array();	
 		$query = 'SELECT * FROM '.sql_table('plug_multiple_categories_sub').' WHERE parentid=' . intval($id);
 		$res = sql_query($query);	
-		while ($a = mysql_fetch_assoc($res)){
+		while ($a = sql_fetch_assoc($res)){
 			array_push($aResult,$a);
 		} 
 		return $aResult;
@@ -949,5 +949,3 @@ if (requestVar('action')) {
 } else {
 	$myAdmin->action('overview');
 }
-
-?>
