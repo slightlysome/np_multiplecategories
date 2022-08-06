@@ -11,8 +11,15 @@
 // (where config.php is)
 $strRel = '../../../';
 
+// future development : plugin self folder : plugins/NP_MultipleCategories/skinfiles/
+if (!is_file($strRel . 'config.php')
+     && basename(dirname(dirname(__FILE__)))=='NP_MultipleCategories'
+     && is_file($strRel.'../config.php')) {
+    $strRel .= '../';
+}
+
 include($strRel . 'config.php');
-if (!$member->isLoggedIn()) {
+if (!$member || !$member->isLoggedIn()) {
     doError('You\'re not logged in.');
 }
 
@@ -25,13 +32,23 @@ $oPluginAdmin = new PluginAdmin('MultipleCategories');
 
 class NpMCategories_ADMIN
 {
-    public function NpMCategories_ADMIN()
+    public $plug;
+    public $plugname;
+    public $url;
+    public $imageurl;
+    public $table;
+    public $action;
+    public $version;
+
+    public function __construct()
     {
         global $oPluginAdmin;
 
         $this->plug =& $oPluginAdmin->plugin;
         $this->plugname = $this->plug->getName();
         $this->url = $this->plug->getAdminURL();
+        $this->imageurl = parse_url($this->url, PHP_URL_PATH);
+        $this->imageurl .= (substr($this->imageurl, -1, 1)!='/' ? '/' : '') . 'images/';
         $this->table = sql_table('plug_multiple_categories_sub');
 
         //modify start+++++++++
@@ -123,6 +140,7 @@ class NpMCategories_ADMIN
         $catid = intRequestVar('catid');
         $catname = $this->plug->_getCatNameFromID($catid);
 
+        $subcatid = null;
         $oPluginAdmin->start(); ?>
 <p><a href="<?php echo $this->url ?>index.php?action=overview">(Go Back)</a></p>
 
@@ -139,7 +157,7 @@ class NpMCategories_ADMIN
             //modify start+++++++++
             if ($this->version > 2) {
                 echo $this->listupSubcategories($catid, $subcatid);
-                echo $this->showOrderMenu($catid, $subcatid);
+                echo $this->showOrderMenu($catid, $subcatid, 'scatoverview');
             } else {
                 //modify end+++++++++?>
 
@@ -271,7 +289,7 @@ class NpMCategories_ADMIN
 </form>
 <?php
             if ($this->version > 2) {
-                echo $this->showOrderMenu($catid, $scatid);
+                echo $this->showOrderMenu($catid, $scatid, 'scatedit');
             }
 
             $oPluginAdmin->end();
@@ -345,12 +363,12 @@ class NpMCategories_ADMIN
     {
         global $member;
 
-        $scatid = intRequestVar('scatid');
+        $scatid = max(0, (int) intRequestVar('scatid'));
 
         $member->isAdmin() or $this->disallow();
 
         $order = array();
-        $order = explode(",", requestVar('orderList'));
+        $order = explode(",", (string) requestVar('orderList'));
 
         $x=1;
         foreach ($order as $o) {
@@ -428,7 +446,9 @@ class NpMCategories_ADMIN
         //</sato(na)0.5j>?>
                 <input type="hidden" name="scatid" value="<?php echo $scatid ?>" />
                 <input type="hidden" name="catid" value="<?php echo $catid ?>" />
-                <?php echo $extraInput ?>
+                <?php if (isset($extraInput)) {
+                    echo $extraInput;
+                } ?>
                 <input type="submit" tabindex="10" value="<?php echo _DELETE_CONFIRM_BTN ?>" />
             </div></form>
         <?php
@@ -465,6 +485,7 @@ class NpMCategories_ADMIN
 
     public function addToScat($nowid)
     {
+        $scat = array();
         if ($this->version >= 3) {
             $datanames = array('catid','sname','sdesc','parentid');
         } else {
@@ -493,8 +514,8 @@ class NpMCategories_ADMIN
     {
         $catName = quickQuery('SELECT cname as result FROM '.sql_table('category').' WHERE catid='.intval($catid));
         $catName = htmlspecialchars($catName, ENT_QUOTES); //<sato(na)0.5j />
-        $text .= "<select size='10' name='parentid'>\n";
-        $text    .= "<option value='0'>&nbsp;$catName&nbsp;</option>\n";
+        $text = "<select size='10' name='parentid'>\n";
+        $text    .= "\t<option value='0'>&nbsp;$catName&nbsp;</option>\n";
         foreach ($this->plug->_setSubOrder() as $val) { //$val : _getSubOrder intval($row_scat->scatid)
             $query = 'SELECT * FROM '.$this->table.' WHERE scatid=' . intval($val);
             $res   = sql_query($query);
@@ -663,7 +684,7 @@ class NpMCategories_ADMIN
 
     public function listupSubcategories($catid, $subcatid)
     {
-        $cat .= "<table style='width:auto;'><tr><td>\n";
+        $cat = "<table style='width:auto;'><tr><td>\n";
         $cat .= "<table border='0' cellpadding='0' cellspacing='0' style='width:auto;'>\n";
         $subcategoryList = $this->getCategoryList($catid);
         //print_r($subcategoryList);
@@ -678,20 +699,30 @@ class NpMCategories_ADMIN
         return $cat;
     }
 
-    public function showOrderMenu($catid, $subcatid=0)
+    public function showOrderMenu($catid, $subcatid=0, $action_type='')
     {//<sato(na)0.402j />
-        global $manager; //<sato(na)0.5j />
+        global $manager, $CONF;
         $text = "<h3>"._MC_MODIFY_CHILDREN_ORDER."</h3>\n";
         if ($sorder = $this->subcatOrd($catid, $subcatid)) {
+            if ($action_type == 'scatedit') {
+                $form_action = $this->url . sprintf('index.php?action=scatedit&catid=%d&scatid=%d', $catid, $subcatid);
+            } elseif ($action_type == 'scatoverview') {
+                $form_action = $this->url . sprintf('index.php?action=scatoverview&catid=%d', $catid);
+            } else {
+                $form_action = '';
+            }
+            if (strlen($form_action)>0) {
+                $form_action = "action='$form_action'";
+            }
+
             $text .= "<table style='width:auto;'>\n";
             $text .= "<script language=javascript src={$this->url}orderlist.js></script>\n";
             $text .= "<form method='post' name='ordform' onsubmit=\"submitCatOrder();\">\n";
             $text .= "<input type='hidden' name='action' value='scatOrder'>\n";
             $text .= "<input type='hidden' name='ticket' value='".$manager->_generateTicket()."'>\n"; //<sato(na)0.5j />
-            $text .= "<input type='hidden' name='redirect' value='".getVar('action')."'>\n";
+            $text .= "<input type='hidden' name='redirect' value='{$action_type}'>\n";
             $text .= "<input type=hidden name=orderList value=''>\n";
             //<sato(na)0.402j>
-            global $CONF;
             $actionUrl = htmlspecialchars($CONF['ActionURL'], ENT_QUOTES).
                 '?action=plugin&amp;name=MultipleCategories&amp;catid='.intval($catid).'&amp;subcatid='.intval($subcatid); //<sato(na)0.5j />
             echo '<script language="javascript" src="'.$actionUrl.'"></script>';
@@ -704,18 +735,18 @@ class NpMCategories_ADMIN
             <tr>
                 <td style="border:0px; padding:0px 3px;">ID</td>
                 <td style="border:0px; padding:0px 3px;">
-                    <img src=plugins/multiplecategories/images/up.gif alt="Move Up" onClick="orderKey(\'id\', \'ASC\')"><br />
-                    <img src=plugins/multiplecategories/images/down.gif alt="Move Down" onClick="orderKey(\'id\', \'DESC\')">
+                    <img src="' . $this->imageurl . 'up.gif" alt="Move Up" onClick="orderKey(\'id\', \'ASC\')"><br />
+                    <img src="' . $this->imageurl . 'down.gif" alt="Move Down" onClick="orderKey(\'id\', \'DESC\')">
                 </td>
                 <td style="border:0px; padding:0px 3px;">[ '._MC_SHOW_ORDER_MENU_SNAME.' ]</td>
                 <td style="border:0px; padding:0px 3px;">
-                    <img src=plugins/multiplecategories/images/up.gif alt="Move Up" onClick="orderKey(\'sname\', \'ASC\')"><br />
-                    <img src=plugins/multiplecategories/images/down.gif alt="Move Down" onClick="orderKey(\'sname\', \'DESC\')">
+                    <img src="' . $this->imageurl . 'up.gif" alt="Move Up" onClick="orderKey(\'sname\', \'ASC\')"><br />
+                    <img src="' . $this->imageurl . 'down.gif" alt="Move Down" onClick="orderKey(\'sname\', \'DESC\')">
                 </td>
                 <td style="border:0px; padding:0px 3px;">'._MC_SHOW_ORDER_MENU_SDESC.'</td>
                 <td style="border:0px; padding:0px 3px;">
-                    <img src=plugins/multiplecategories/images/up.gif alt="Move Up" onClick="orderKey(\'sdesc\', \'ASC\')"><br />
-                    <img src=plugins/multiplecategories/images/down.gif alt="Move Down" onClick="orderKey(\'sdesc\', \'DESC\')">
+                    <img src="' . $this->imageurl . 'up.gif" alt="Move Up" onClick="orderKey(\'sdesc\', \'ASC\')"><br />
+                    <img src="' . $this->imageurl . 'down.gif" alt="Move Down" onClick="orderKey(\'sdesc\', \'DESC\')">
                 </td>
             </tr>
         </table>
@@ -859,37 +890,39 @@ class NpMCategories_ADMIN
                 $text .= "<td class='hover' style='border:0px;padding:0px;'>\n";
                 if ($level == 0) {
                     if ($hasSiblings) {
-                        $text .= "<img src='./plugins/multiplecategories/images/minusbottom.gif' alt='' /><img src='./plugins/multiplecategories/images/folder.gif' alt='' /> \n";
+                        $text .= "<img src='{$this->imageurl}minusbottom.gif' alt='' /><img src='{$this->imageurl}folder.gif' alt='' /> \n";
                     } else {
-                        $text .= "<img src='./plugins/multiplecategories/images/minus.gif' alt='' /><img src='./plugins/multiplecategories/images/folder.gif' alt='' /> \n";
+                        $text .= "<img src='{$this->imageurl}minus.gif' alt='' /><img src='{$this->imageurl}folder.gif' alt='' /> \n";
                     }
                 } else {
                     for ($i=0;$i<$level;$i++) {
                         if ($childrenLevel[$i]) {
-                            $text .= "<img src='./plugins/multiplecategories/images/line.gif' alt='' /> \n";
+                            $text .= "<img src='{$this->imageurl}line.gif' alt='' /> \n";
                         } else {
-                            $text .= "<img src='./plugins/multiplecategories/images/empty.gif' alt='' />";
+                            $text .= "<img src='{$this->imageurl}empty.gif' alt='' />";
                         }
                     }
                     if ($hasSiblings) {
                         if ($children != "") {
-                            $text .= "<img src='./plugins/multiplecategories/images/minusbottom.gif' alt='' /><img src='./plugins/multiplecategories/images/folder.gif' alt='' /> \n";
+                            $text .= "<img src='{$this->imageurl}minusbottom.gif' alt='' /><img src='{$this->imageurl}folder.gif' alt='' /> \n";
                         } else {
-                            $text .= "<img src='./plugins/multiplecategories/images/joinbottom.gif' alt='' /><img src='./plugins/multiplecategories/images/folder.gif' alt='' /> \n";
+                            $text .= "<img src='{$this->imageurl}joinbottom.gif' alt='' /><img src='{$this->imageurl}folder.gif' alt='' /> \n";
                         }
                     } else {
                         if ($children != "") {
-                            $text .= "<img src='./plugins/multiplecategories/images/minus.gif' alt='' /><img src='./plugins/multiplecategories/images/folder.gif' alt='' /> \n";
+                            $text .= "<img src='{$this->imageurl}minus.gif' alt='' /><img src='{$this->imageurl}folder.gif' alt='' /> \n";
                         } else {
-                            $text .= "<img src='./plugins/multiplecategories/images/join.gif' alt='' /><img src='./plugins/multiplecategories/images/folder.gif' alt='' /> \n";
+                            $text .= "<img src='{$this->imageurl}join.gif' alt='' /><img src='{$this->imageurl}folder.gif' alt='' /> \n";
                         }
                     }
                 }
-                if ($row[group] != 0) {
-                    $group = "(Private)";
-                } else {
-                    $group = '';
-                }
+                // bug : $row is always undefined
+//                if ($row['group'] != 0) {
+//                    $group = "(Private)";
+//                } else {
+//                    $group = '';
+//                }
+                $group = '';
                 if ($selectedCategory == $category["id"]) {
                     $text .= "<strong>".htmlspecialchars($category["title"], ENT_QUOTES).
                         " <sup>".htmlspecialchars($category["description"], ENT_QUOTES)."</sup>"."</strong> $group</td>\n";
@@ -900,7 +933,7 @@ class NpMCategories_ADMIN
                 $subcatid = $category["id"];
                 if ($type == 2) {
                     // ALL ACTIONS //
-                    $text .= "<td class='hover' align='center' style='border:0px;padding:0px 0px 0px 15px;'><a href={$this->url}index.php?action=scatedit&catid=$catid&amp;scatid=$subcatid><img src=plugins/multiplecategories/images/bedit.gif alt='"._LISTS_EDIT."' border=0></a> \n<a href={$this->url}index.php?action=scatdelete&catid=$catid&amp;scatid=$subcatid><img src=plugins/multiplecategories/images/bdelete.gif alt='"._LISTS_DELETE."' border=0></a></td>\n";
+                    $text .= "<td class='hover' align='center' style='border:0px;padding:0px 0px 0px 15px;'><a href={$this->url}index.php?action=scatedit&catid=$catid&amp;scatid=$subcatid><img src='{$this->imageurl}bedit.gif' alt='"._LISTS_EDIT."' border=0></a> \n<a href={$this->url}index.php?action=scatdelete&catid=$catid&amp;scatid=$subcatid><img src='{$this->imageurl}bdelete.gif' alt='"._LISTS_DELETE."' border=0></a></td>\n";
                 }
                 $text .= "</tr>\n";
                 $text .= $children;
@@ -936,7 +969,7 @@ class NpMCategories_ADMIN
         if (sql_num_rows($result) < 2) {
             return false;
         }
-        $text .= "<tr><td class=main style='border:0px;padding:0px;'><select name=order multiple size=15>";
+        $text = "<tr><td class=main style='border:0px;padding:0px;'><select name=order multiple size=15>";
         //<sato(na)0.402j>
         while ($row = sql_fetch_array($result)) {
             //<sato(na)0.5j>
@@ -949,8 +982,8 @@ class NpMCategories_ADMIN
         }
         $text .= "</select>"._MC_SHOW_ORDER_MENU_INDIVIDUAL."&nbsp;";
         //</sato(na)0.402j>
-        $text .= "<img src=plugins/multiplecategories/images/up.gif alt='Move Up' onClick=\"moveOptionUp(document.ordform.order)\">&nbsp;";
-        $text .= "<img src=plugins/multiplecategories/images/down.gif alt='Move Down' onClick=\"moveOptionDown(document.ordform.order)\"></td></tr>";
+        $text .= "<img src='{$this->imageurl}up.gif' alt='Move Up' onClick=\"moveOptionUp(document.ordform.order)\">&nbsp;";
+        $text .= "<img src='{$this->imageurl}down.gif' alt='Move Down' onClick=\"moveOptionDown(document.ordform.order)\"></td></tr>";
         return $text;
     }
 

@@ -23,13 +23,6 @@
  *		- etc
  */
 
-if (!function_exists('array_key_exists')) {
-    function array_key_exists($key, $array)
-    {
-        return key_exists($key, $array);
-    }
-}
-
 class NP_MultipleCategories extends NucleusPlugin
 {
     public function getName()
@@ -42,15 +35,15 @@ class NP_MultipleCategories extends NucleusPlugin
     }
     public function getURL()
     {
-        return 'http://nucleus.slightlysome.net/plugins/multiplecategories';
+        return 'https://github.com/NucleusCMS/NP_MultipleCategories';
     }
     public function getVersion()
     {
-        return '0.5.1j-lm1';
+        return '0.6.0';
     }
     public function getMinNucleusVersion()
     {
-        return '220';
+        return '350';
     }
     public function getDescription()
     {
@@ -105,9 +98,19 @@ class NP_MultipleCategories extends NucleusPlugin
         $this->createOption("locale", _NP_MCOP_LOCALE, "text", 'ja_JP');
         $this->createOption("quickmenu", _NP_MCOP_QICKMENU, "yesno", "no");
         $this->createOption("del_uninstall", _NP_MCOP_DELTABLE, "yesno", "no");
+
+        $this->install_db();
+    }
+
+    private function install_db()
+    {
         // create the table that will keep track of notifications
         sql_query(sprintf(
-            'CREATE TABLE IF NOT EXISTS %s( item_id int(11) NOT NULL, categories varchar(255) not null, subcategories varchar(255) not null, PRIMARY KEY  (item_id)) ENGINE=MyISAM;',
+            'CREATE TABLE IF NOT EXISTS %s(
+                item_id int(11) NOT NULL,
+                categories varchar(255) not null,
+                subcategories varchar(255) not null,
+                PRIMARY KEY  (item_id)) ENGINE=MyISAM;',
             sql_table('plug_multiple_categories')
         ));
 
@@ -117,7 +120,7 @@ class NP_MultipleCategories extends NucleusPlugin
         ));
         $total = sql_num_fields($check_column);
         for ($i = 0; $i < $total; $i++) {
-            if ($meta = sql_fetch_field($check_column)) {
+            if ($meta = sql_fetch_field($check_column, $i)) {
                 $names[] = $meta->name;
             }
         }
@@ -132,13 +135,26 @@ class NP_MultipleCategories extends NucleusPlugin
             ));
         }
         sql_query(sprintf(
-            'CREATE TABLE IF NOT EXISTS %s(scatid int(11) not null auto_increment,catid int(11) not null,sname varchar(40) not null,sdesc varchar(200) not null, PRIMARY KEY (scatid)) ENGINE=MyISAM;',
+            'CREATE TABLE IF NOT EXISTS %s(
+                scatid int(11) not null auto_increment,
+                catid int(11) not null,
+                parentid INT( 11 ) DEFAULT 0 NOT NULL,
+                ordid    INT( 11 ) DEFAULT 100 NOT NULL,
+                sname varchar(40) not null,
+                sdesc varchar(200) not null,
+                PRIMARY KEY (scatid)) ENGINE=MyISAM;',
             sql_table('plug_multiple_categories_sub')
         ));
 
+        $this->upgrade_db();
+    }
+
+    private function upgrade_db()
+    {
         //<sato(na)0.5.1j>
         //table Upgrade
-        if ($this->checkMSCVersion() == 2) {
+        $version = $this->checkMSCVersion();
+        if ($version == 2) {
             sql_query(sprintf(
                 "
                 ALTER TABLE 
@@ -148,7 +164,7 @@ class NP_MultipleCategories extends NucleusPlugin
             ",
                 sql_table('plug_multiple_categories_sub')
             ));
-        } elseif ($this->version == 3) {
+        } elseif ($version == 3) {
             sql_query(sprintf(
                 "
                 ALTER TABLE 
@@ -209,6 +225,9 @@ class NP_MultipleCategories extends NucleusPlugin
     {
         return 'subcatid';
     }
+
+    private $setglobal;
+    private $subOrderArray;
 
     public function init()
     {
@@ -357,9 +376,9 @@ class NP_MultipleCategories extends NucleusPlugin
     public function _getScatIDFromName($name)
     {
         return quickQuery(sprintf(
-            'SELECT scatid as result FROM %s WHERE sname="%s"',
+            "SELECT scatid as result FROM %s WHERE sname='%s'",
             sql_table('plug_multiple_categories_sub'),
-            addslashes($name)
+            sql_real_escape_string($name)
         ));
     }
 
@@ -433,6 +452,12 @@ class NP_MultipleCategories extends NucleusPlugin
     }
     public function _getSubOrder($pid)
     {
+        // Nucleus has no current PLUGIN state flag / Can not kwnow now installing.
+        if (function_exists('sql_existTableName') && !call_user_func('sql_existTableName', sql_table('plug_multiple_categories_sub'))) {
+            // table not exist
+            return '';
+        }
+
         //<sato(na)0.5j />
         $qid_scat = sql_query(sprintf(
             'SELECT scatid FROM %s WHERE parentid=%d ORDER BY ordid',
@@ -645,7 +670,8 @@ function orderKey(key, sequence) {
     {
         $selected = requestIntArray('npmc_cat');
         $s_selected = requestIntArray('npmc_scat');
-        if (count($selected) == 0 && count($s_selected) == 0) {
+        if ((is_null($selected) || count($selected) == 0)
+            && (is_null($s_selected) || count($s_selected) == 0)) {
             return;
         }
 
@@ -701,19 +727,19 @@ function orderKey(key, sequence) {
         if (count($aMulti) > 0) {
             $aMulti = array_map("intval", $aMulti);
             $cat_string = implode(',', $aMulti);
-            $value .= ', "' . addslashes($cat_string) . '"';
+            $value .= ", '" . sql_real_escape_string($cat_string) . "'";
         } else {
             $value .= ', ""';
         }
 
         if (count($aSub) > 0) {
             $scat_string = implode(',', $aSub);
-            $value .= ', "' . addslashes($scat_string) . '"';
+            $value .= ", '" . sql_real_escape_string($scat_string) . "'";
         } else {
             $value .= ', ""';
         }
 
-        $query = 'REPLACE INTO ' . sql_table('plug_multiple_categories') . ' (item_id,categories,subcategories) VALUES(' . (int)$itemid . $value . ');'; //$value : addslashes
+        $query = 'REPLACE INTO ' . sql_table('plug_multiple_categories') . ' (item_id,categories,subcategories) VALUES(' . (int)$itemid . $value . ');'; //$value : sql_real_escape_string
         sql_query($query);
     }
 
@@ -752,8 +778,13 @@ function orderKey(key, sequence) {
             } else {
                 $o->categories = preg_replace("/(^,+|(?<=,),+|,+$)/", "", $o->categories);
                 $o->subcategories = preg_replace("/(^,+|(?<=,),+|,+$)/", "", $o->subcategories);
-                $up[] = "UPDATE " . sql_table("plug_multiple_categories") . " SET categories='" . addslashes($o->categories) .
-                    "', subcategories='" . addslashes($o->subcategories) . "' WHERE item_id=" . (int)$o->item_id; //<sato(na)0.5j />ultrarich
+                $up[] = sprintf(
+                    "UPDATE %s SET categories='%s', subcategories='%s' WHERE item_id=%d",
+                    sql_table("plug_multiple_categories"),
+                    sql_real_escape_string($o->categories),
+                    sql_real_escape_string($o->subcategories),
+                    (int)$o->item_id
+                );
             }
         }
 
@@ -914,8 +945,8 @@ function orderKey(key, sequence) {
             $amountEntries = 10;
         }
 
-        $mycatid = (int)$mycatid;
-        $mysubcatid = (int)$mysubcatid;
+        $mycatid = max(0, (int)$mycatid);
+        $mysubcatid = max(0, (int)$mysubcatid);
         if (!$mycatid && $mysubcatid) {
             $mysubcatid = 0;
         }
@@ -935,6 +966,7 @@ function orderKey(key, sequence) {
             . ' and i.icat=c.catid'
             . ' and i.idraft=0';
         if ($params[0] === 'archive' && $archive) {
+            $y = $m = $d = 0;
             sscanf($archive, '%d-%d-%d', $y, $m, $d);
             if ($d) {
                 $timestamp_start = mktime(0, 0, 0, $m, $d, $y);
@@ -1080,6 +1112,14 @@ function orderKey(key, sequence) {
     }
     //</sato(na)0.5j>
 
+    private $msep;
+    private $ssep;
+    private $sform;
+    private $addindex;
+    private $addbiddef;
+    private $addbid;
+    private $defurl;
+
     public function _setCommonData($bid)
     {
         global $CONF;
@@ -1089,12 +1129,15 @@ function orderKey(key, sequence) {
         $this->addindex = ($this->getOption('addindex') === 'yes');
         $this->addbiddef = ($this->getOption('addblogid_def') === 'yes');
         $this->addbid = ($this->getOption('addblogid') === 'yes');
-        $this->defurl = quickQuery("SELECT burl as result from " . sql_table('blog') . " WHERE bnumber=" . addslashes($CONF['DefaultBlog'])); //<sato(na)0.5j />
+        $this->defurl = quickQuery(sprintf("SELECT burl as result from %s WHERE bnumber=%d", sql_table('blog'), (int) $CONF['DefaultBlog'])); //<sato(na)0.5j />
         if (!$this->defurl) {
             $this->defurl = $CONF['Self'];
         }
         $this->_setBlogData($bid);
     }
+
+    private $param;
+    private $bid;
 
     public function _setBlogData($bid)
     {
@@ -1150,6 +1193,7 @@ function orderKey(key, sequence) {
 
         //<sato(na)0.5j>
         if ($archive) {
+            $y = $m = $d = 0;
             sscanf($archive, '%d-%d-%d', $y, $m, $d);
             if ($d) {
                 $archive = sprintf('%04d-%02d-%02d', $y, $m, $d);
@@ -1431,7 +1475,7 @@ function orderKey(key, sequence) {
 
         if ($name === 'subcatname') {
             //Even as for "subcategory" with same "parent", the name is not unique either.
-            $scatname = _getScatNameFromID($subcatid);
+            $scatname = $this->_getScatNameFromID($subcatid);
             if ($value == $scatname) {
                 return $this->isValidSubCategory($subcatid);
             }
@@ -1445,6 +1489,9 @@ function orderKey(key, sequence) {
     }
     public function isValidSubCategory($subcatid)
     {
+        if (((int) $subcatid) <= 0) {
+            return false;
+        }
         //		global $blog;
         global $manager;
         //		$catid = quickQuery('SELECT catid AS result FROM '.sql_table('plug_multiple_categories_sub').' WHERE scatid=' . intval($subcatid));
