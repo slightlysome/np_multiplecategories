@@ -539,10 +539,11 @@ function orderKey(key, sequence) {
     public function event_AddItemFormExtras($data)
     {
         $aCategories = $this->_getCategories($data['blog']->blogid);
+        $itemid = null; // New item has no itemid at this time.
         if (count($aCategories) > 1) {
-            $this->showForm($aCategories, $data['itemid']);
+            $this->showForm($aCategories, $itemid);
         } elseif (count($aCategories)) {
-            $this->showSubForm($aCategories, $data['itemid']);
+            $this->showSubForm($aCategories, $itemid);
         }
     }
 
@@ -564,9 +565,11 @@ function orderKey(key, sequence) {
         }
 
         $itemScats = array();
-        //Intval is not needed. ($itemid) <sato(na)0.5j />
-        if ($subcatlist = $this->_getSubCategories($itemid)) {
-            $itemScats = explode(',', $subcatlist);
+        if ($itemid !== null) { // edit item
+            //Intval is not needed. ($itemid) <sato(na)0.5j />
+            if ($subcatlist = $this->_getSubCategories($itemid)) {
+                $itemScats = explode(',', $subcatlist);
+            }
         }
 
         //<sato(na)>$snum = 0;</sato(na)>
@@ -602,13 +605,15 @@ function orderKey(key, sequence) {
     {
         $itemcats = array();
         $itemScats = array();
-        //Intval is not needed. ($itemid) <sato(na)0.5j />
-        if ($multicatlist = $this->_getMultiCategories($itemid)) {
-            $itemcats = explode(',', $multicatlist);
-        }
-        //Intval is not needed. ($itemid) <sato(na)0.5j />
-        if ($subcatlist = $this->_getSubCategories($itemid)) {
-            $itemScats = explode(',', $subcatlist);
+        if ($itemid !== null) { // edit item
+            //Intval is not needed. ($itemid) <sato(na)0.5j />
+            if ($multicatlist = $this->_getMultiCategories($itemid)) {
+                $itemcats = explode(',', $multicatlist);
+            }
+            //Intval is not needed. ($itemid) <sato(na)0.5j />
+            if ($subcatlist = $this->_getSubCategories($itemid)) {
+                $itemScats = explode(',', $subcatlist);
+            }
         }
 
         echo '<h3 style="margin-bottom:0px;">Multiple Categories</h3>';
