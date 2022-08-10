@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 define('_NPMC_DESCRIPTION',              'マルチ/サブカテゴリーを提供します。サブカテゴリーの階層は、無限に重ねることが出来ます'); 
 
@@ -56,4 +56,3 @@ define('_NP_MCOP_LOCALE',                '日付のロケール');
 define('_NP_MCOP_QICKMENU',              'クイックメニューに表示しますか？');
 define('_NP_MCOP_DELTABLE',              'アンインストール時にデータを全て破棄しますか？');
 
-?>

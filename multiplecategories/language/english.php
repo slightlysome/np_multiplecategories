@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 define('_NPMC_DESCRIPTION',              'Multiple Categories, Sub Categories.'); 
 
@@ -56,4 +56,3 @@ define('_NP_MCOP_LOCALE',                "[Archive list] Locale");
 define('_NP_MCOP_QICKMENU',              "Show in quick menu");
 define('_NP_MCOP_DELTABLE',              "Delete tables on uninstall?");
 
-?>
